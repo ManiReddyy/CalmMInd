@@ -11,9 +11,23 @@
 <body>
 
     <div class="app-container">
+        <div class="orb" id="orb-visual"></div>
+        <div class="music-select-wrapper">
+    <label for="music-select">Background Sound:</label>
+    <select id="music-select">
+        <option value="none">None</option>
+        <option value="rain">Rain</option>
+        <option value="forest">Forest</option>
+        </select>
+</div>
+        <div class="time-input-wrapper">
+            <label for="duration-input">Set Time (mins):</label>
+            <input type="number" id="duration-input" value="5" min="1">
+        </div>
         <h2 id="instruction-text">Press Start to Begin</h2>
         
         <button id="start-button">Start</button>
+        <button id="stop-button" class="hidden">Stop</button>
     </div>
 
     <script src="app.js"></script>
