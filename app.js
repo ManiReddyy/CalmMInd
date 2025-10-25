@@ -28,9 +28,10 @@ const CYCLE_TIME = INHALE_TIME + HOLD_TIME + EXHALE_TIME;
 // --- 4. TIMER VARIABLES ---
 let cycleInterval = null;
 let sessionTimeout = null;
-// *** NEW FIX: VARIABLES TO HOLD THE INNER TIMERS ***
 let holdTimeout = null;
 let exhaleTimeout = null;
+let prepInterval = null; // <-- RENAMED from prepTimeout
+let prepSeconds = 5;     // <-- NEW countdown variable
 
 // --- 5. LISTEN FOR BUTTON CLICKS & PAGE LOAD ---
 startButton.addEventListener('click', startMeditation);
@@ -39,52 +40,71 @@ document.addEventListener('DOMContentLoaded', displayStreak);
 
 // --- 6. START/STOP FUNCTIONS ---
 function startMeditation() {
-    bellSound.load();
-    gongSound.load();
-    // Hide controls
+    // 1. HIDE CONTROLS
     startButton.classList.add('hidden');
     stopButton.classList.remove('hidden');
     timeWrapper.classList.add('hidden');
     musicWrapper.classList.add('hidden');
     streakWrapper.classList.add('hidden');
+    
+    // Prime sounds
+    bellSound.load();
+    gongSound.load();
 
-    // Calculate time
+    // 2. CALCULATE TIME
     const minutes = parseInt(durationInput.value);
     const totalSeconds = minutes * 60;
     const totalCycles = Math.round(totalSeconds / 19);
     const exactTotalTime = totalCycles * CYCLE_TIME;
 
-    // A. Start Background Music
-    const selectedMusic = musicSelect.value;
-    if (selectedMusic !== 'none') {
-        currentMusic = bgMusic[selectedMusic];
-        currentMusic.loop = true;
-        currentMusic.play();
-    }
+    // 3. START 5-SECOND COUNTDOWN
+    prepSeconds = 5; // Reset countdown
+    instructionText.textContent = `Get ready... ${prepSeconds}`; // Show "5" immediately
 
-    // B. Start Visual animation
-    orbVisual.style.opacity = '0.7';
-    orbVisual.classList.add('is-breathing');
+    prepInterval = setInterval(() => {
+        prepSeconds--; // Decrement
+        
+        if (prepSeconds < 0) {
+            // Countdown finished, start the session
+            clearInterval(prepInterval); // Stop this countdown timer
+            
+            // --- START ACTUAL MEDITATION ---
+            // A. Start Background Music
+            const selectedMusic = musicSelect.value;
+            if (selectedMusic !== 'none') {
+                currentMusic = bgMusic[selectedMusic];
+                currentMusic.loop = true;
+                currentMusic.play();
+            }
 
-    // C. Start Text and Sound cycle
-    runTextAndSoundCycle();
-    cycleInterval = setInterval(runTextAndSoundCycle, CYCLE_TIME);
+            // B. Start Visual animation
+            orbVisual.style.opacity = '0.7';
+            orbVisual.classList.add('is-breathing');
 
-    // D. Schedule the end
-    sessionTimeout = setTimeout(() => endMeditation(true), exactTotalTime);
+            // C. Start Text and Sound cycle
+            runTextAndSoundCycle(); // Run first cycle
+            cycleInterval = setInterval(runTextAndSoundCycle, CYCLE_TIME);
+
+            // D. Schedule the end
+            sessionTimeout = setTimeout(() => endMeditation(true), exactTotalTime);
+            // --- END ACTUAL MEDITATION ---
+
+        } else {
+            // Continue countdown
+            instructionText.textContent = `Get ready... ${prepSeconds}`;
+        }
+    }, 1000); // 1000ms = 1 second
 }
 
 function runTextAndSoundCycle() {
     instructionText.textContent = 'Inhale...';
     bellSound.play();
 
-    // *** NEW FIX: STORE THE TIMERS ***
     holdTimeout = setTimeout(() => {
         instructionText.textContent = 'Hold...';
         bellSound.play();
     }, INHALE_TIME);
 
-    // *** NEW FIX: STORE THE TIMERS ***
     exhaleTimeout = setTimeout(() => {
         instructionText.textContent = 'Exhale...';
         bellSound.play();
@@ -92,13 +112,12 @@ function runTextAndSoundCycle() {
 }
 
 function endMeditation(wasCompleted) {
-    // Stop all timers and sounds
+    // STOP ALL PENDING TIMERS
     clearInterval(cycleInterval);
     clearTimeout(sessionTimeout);
-    
-    // *** NEW FIX: CLEAR THE PENDING TIMERS ***
     clearTimeout(holdTimeout);
     clearTimeout(exhaleTimeout);
+    clearInterval(prepInterval); // <-- UPDATED to clearInterval
 
     // Stop visual animation
     orbVisual.classList.remove('is-breathing');
